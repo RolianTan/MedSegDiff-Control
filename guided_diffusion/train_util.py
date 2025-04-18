@@ -111,7 +111,7 @@ class TrainLoop:
                 output_device=dist_util.dev(),
                 broadcast_buffers=False,
                 bucket_cap_mb=128,
-                find_unused_parameters=False,
+                find_unused_parameters=True,
             )
         else:
             if dist.get_world_size() > 1:
@@ -254,9 +254,9 @@ class TrainLoop:
                 self.diffusion, t, {k: v * weights for k, v in losses.items()}
             )
             self.mp_trainer.backward(loss)
-            for name, param in self.ddp_model.named_parameters():
-                if param.grad is None:
-                    print(name)
+            # for name, param in self.ddp_model.named_parameters():
+            #     if param.grad is None:
+            #         print(name)
             return  sample
 
     def _update_ema(self):

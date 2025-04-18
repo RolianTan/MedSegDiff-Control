@@ -778,7 +778,7 @@ class UNetModel_v1preview(nn.Module):
             emb = emb + self.label_emb(y)
 
         h = x.type(self.dtype)
-        c = h[:,:-1,...]
+        c = x[:, :-1, ...]
         hlist= []
         for ind, module in enumerate(self.input_blocks):
             if len(emb.size()) > 2:
@@ -786,7 +786,7 @@ class UNetModel_v1preview(nn.Module):
             h = module(h, emb)
             hs.append(h)
         # uemb, cal = self.highway_forward(c, [hs[3],hs[6],hs[9],hs[12]])
-        print("here0")
+        # print("here0")
         uemb, cal = self.highway_forward(c, [hs[3], hs[6], hs[9], hs[12]],
                                          control_hs=[control_hs[3], control_hs[6], control_hs[9], control_hs[12]])
 
@@ -1095,7 +1095,7 @@ class UNetModel_newpreview(nn.Module):
             emb = emb + self.label_emb(y)
         # x_t from q_sample (x_0 after forward diffusion)
         h = x.type(self.dtype)
-        c = h[:, :-1, ...]
+        c = x[:, :-1, ...]
         hlist = []
         # prepare the hs for SSFormer
         for ind, module in enumerate(self.input_blocks):
@@ -1104,11 +1104,11 @@ class UNetModel_newpreview(nn.Module):
             h = module(h, emb)
             hs.append(h)
         # uemb, cal = self.highway_forward(c, [hs[3],hs[6],hs[9],hs[12]])
-        print("here0")
+        # print("here0")
         # compute the fused condition embeddings
         uemb, cal = self.highway_forward(c, [hs[3], hs[6], hs[9], hs[12]],
                                          control_hs=[control_hs[3], control_hs[6], control_hs[9], control_hs[12]])
-
+        h = x.type(self.dtype)
         # DDPM process
         for ind, module in enumerate(self.input_blocks):
             if len(emb.size()) > 2:
@@ -2276,7 +2276,7 @@ class Generic_UNet(SegmentationNetwork):
                  feat_map_mul_on_downscale=2, conv_op=nn.Conv2d,
                  norm_op=nn.BatchNorm2d, norm_op_kwargs=None,
                  dropout_op=nn.Dropout2d, dropout_op_kwargs=None,
-                 nonlin=nn.LeakyReLU, nonlin_kwargs=None, highway = False, deep_supervision=False, anchor_out=False, dropout_in_localization=False,
+                 nonlin=nn.LeakyReLU, nonlin_kwargs=None, highway = True, deep_supervision=False, anchor_out=False, dropout_in_localization=False,
                  final_nonlin=sigmoid_helper, weightInitializer=InitWeights_He(1e-2), pool_op_kernel_sizes=None,
                  conv_kernel_sizes=None,
                  upscale_logits=False, convolutional_pooling=False, convolutional_upsampling=False,
@@ -2301,7 +2301,7 @@ class Generic_UNet(SegmentationNetwork):
             dropout_op_kwargs = {'p': 0.5, 'inplace': True}
         if norm_op_kwargs is None:
             norm_op_kwargs = {'eps': 1e-5, 'affine': True, 'momentum': 0.1}
-
+        self.highway = highway
         self.conv_kwargs = {'stride': 1, 'dilation': 1, 'bias': True}
 
         self.nonlin = nonlin
@@ -2482,6 +2482,13 @@ class Generic_UNet(SegmentationNetwork):
         self.conv_blocks_context = nn.ModuleList(self.conv_blocks_context)
         self.conv_trans_blocks_a = nn.ModuleList(self.conv_trans_blocks_a)
         self.conv_trans_blocks_b = nn.ModuleList(self.conv_trans_blocks_b)
+        # adapt x to cloned ControlNet
+        self.ctrl_proj = nn.ModuleList([
+            conv_nd(2, in_ch, out_ch, 1) for in_ch, out_ch in zip(
+                [128, 128, 256, 256],
+                [32, 64, 128, 256]
+            )
+        ])
         self.ffparser = nn.ModuleList(self.ffparser)
         self.td = nn.ModuleList(self.td)
         self.tu = nn.ModuleList(self.tu)
@@ -2506,7 +2513,7 @@ class Generic_UNet(SegmentationNetwork):
             if not self.convolutional_pooling:
                 x = self.td[d](x)
             if hs:
-                print("here2")
+                # print("here2")
                 # input: hs (intermediate feature maps) - v(green)
                 # SSFormer
                 h = hs.pop(0)
@@ -2522,7 +2529,10 @@ class Generic_UNet(SegmentationNetwork):
                 # ControlNet fusion
                 if control_hs:
                     ctrl_feat = control_hs.pop(0)
+                    # debug
+                    ctrl_feat = self.ctrl_proj[d](ctrl_feat)
                     x = x + ctrl_feat
+                    # exit()
                 # output: x (processed hs - latent noisy) - v(purple)
 
 

@@ -102,6 +102,8 @@ def create_argparser():
         ema_rate="0.9999",  # comma-separated list of EMA values
         log_interval=100,
         save_interval=10000,
+        # log_interval=3,
+        # save_interval=6,
         resume_checkpoint=None, #"/results/pretrainedmodel.pt"
         use_fp16=False,
         fp16_scale_growth=1e-3,
