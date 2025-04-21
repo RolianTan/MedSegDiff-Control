@@ -99,6 +99,7 @@ def main():
     model.eval()
     for _ in range(len(data)):
         b, m, path = next(data)  #should return an image from the dataloader "data"
+        print("path: ", path[0])
         c = th.randn_like(b[:, :1, ...])
         img = th.cat((b, c), dim=1)     #add a noise channel$
         if args.data_name == 'ISIC':
@@ -106,6 +107,8 @@ def main():
         elif args.data_name == 'BRATS':
             # slice_ID=path[0].split("_")[2] + "_" + path[0].split("_")[4]
             slice_ID=path[0].split("_")[-3] + "_" + path[0].split("slice")[-1].split('.nii')[0]
+        else:
+            slice_ID = path[0].split('/')[-1].split('.')[0]
 
         logger.log("sampling...")
 
@@ -175,16 +178,16 @@ def main():
 
 def create_argparser():
     defaults = dict(
-        data_name = 'BRATS',
-        data_dir="../dataset/brats2020/testing",
+        data_name = 'covid',
+        data_dir="./dataset/covid/test",
         clip_denoised=True,
         num_samples=1,
         batch_size=1,
         use_ddim=False,
-        model_path="",         #path to pretrain model
+        model_path="./scripts/results/savedmodel100000.pt",      #path to pretrain model
         num_ensemble=5,      #number of samples in the ensemble
         gpu_dev = "0",
-        out_dir='./results/',
+        out_dir='./results/100000_epoch/infer',
         multi_gpu = None, #"0,1,2"
         debug = False
     )

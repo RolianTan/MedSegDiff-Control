@@ -18,8 +18,8 @@ import torch as th
 from guided_diffusion.train_util import TrainLoop
 # from visdom import Visdom
 # viz = Visdom(port=8850)
-# Visdom(use_incoming_socket=False)
 import torchvision.transforms as transforms
+import os
 
 def main():
     args = create_argparser().parse_args()
@@ -59,15 +59,21 @@ def main():
     model, diffusion = create_model_and_diffusion(
         **args_to_dict(args, model_and_diffusion_defaults().keys())
     )
+    model.to('cpu')
+
     if args.multi_gpu:
-        model = th.nn.DataParallel(model,device_ids=[int(id) for id in args.multi_gpu.split(',')])
+        print(args.multi_gpu)
         model.to(device = th.device('cuda', int(args.gpu_dev)))
+        model = th.nn.DataParallel(model,device_ids=[int(id) for id in args.multi_gpu.split(',')])
+        # model.to(device = th.device('cuda', int(args.gpu_dev)))
     else:
-        model.to(dist_util.dev())
+        # model.to(dist_util.dev())
+        model.to(device = th.device('cuda', int(args.gpu_dev)))
     schedule_sampler = create_named_schedule_sampler(args.schedule_sampler, diffusion,  maxt=args.diffusion_steps)
 
-
     logger.log("training...")
+    print(f"run {args.lr_anneal_steps} steps")
+    print(f"batch size: {args.batch_size}")
     TrainLoop(
         model=model,
         diffusion=diffusion,
@@ -91,31 +97,29 @@ def main():
 
 def create_argparser():
     defaults = dict(
-        data_name = 'BRATS',
-        data_dir="../dataset/brats2020/training",
+        data_name = 'covid',
+        data_dir="../dataset/covid/train",
         schedule_sampler="uniform",
         lr=1e-4,
         weight_decay=0.0,
-        lr_anneal_steps=100000, # steps
-        batch_size=1,
+        lr_anneal_steps=100000,
+        batch_size=8,
         microbatch=-1,  # -1 disables microbatches
         ema_rate="0.9999",  # comma-separated list of EMA values
         log_interval=100,
-        save_interval=10000,
-        # log_interval=3,
-        # save_interval=6,
+        save_interval=5000,
         resume_checkpoint=None, #"/results/pretrainedmodel.pt"
         use_fp16=False,
         fp16_scale_growth=1e-3,
         gpu_dev = "0",
-        multi_gpu = None, #"0,1,2"
-        out_dir='./results/'
+        multi_gpu = "0,1", #"0,1,2"
+        out_dir='./results/',
     )
     defaults.update(model_and_diffusion_defaults())
     parser = argparse.ArgumentParser()
     add_dict_to_argparser(parser, defaults)
     return parser
 
-
+ 
 if __name__ == "__main__":
     main()
