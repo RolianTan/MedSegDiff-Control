@@ -3,9 +3,22 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import argparse
-from sklearn.metrics import jaccard_score, f1_score
 
-    
+
+def compute_foreground_iou_dice(gt, pred):
+    """
+    only compute the iou and dice of foreground
+    """
+    gt_fg = (gt == 1)
+    pred_fg = (pred == 1)
+
+    intersection = np.logical_and(gt_fg, pred_fg).sum()
+    union = np.logical_or(gt_fg, pred_fg).sum()
+    iou = intersection / (union + 1e-8)
+
+    dice = 2 * intersection / (gt_fg.sum() + pred_fg.sum() + 1e-8)
+    return iou, dice
+
     
 def main():
     argParser = argparse.ArgumentParser()
@@ -36,17 +49,15 @@ def main():
                 th=0.5
                 pred = (pred >= th).astype(np.uint8)
                 
-                pred_flat = pred.ravel()
-                gt_flat = gt.ravel()
-
-                iou = jaccard_score(gt_flat, pred_flat)      # IoU = TP / (TP + FP + FN)
-                dice = f1_score(gt_flat, pred_flat)          # Dice = 2TP / (2TP + FP + FN)
+                iou, dice = compute_foreground_iou_dice(gt, pred)
 
                 print(f"IoU  = {iou:.4f}")
                 print(f"Dice = {dice:.4f}")
                 
                 iou_list.append(iou)
                 dice_list.append(iou)
+                
+
 
     print(f"Mean IoU = {np.mean(iou_list):.4f}")
     print(f"Mean Dice = {np.mean(dice_list):.4f}")
