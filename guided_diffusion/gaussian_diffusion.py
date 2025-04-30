@@ -269,9 +269,9 @@ class GaussianDiffusion:
         C=1
         cal = 0
         assert t.shape == (B,)
-        # model_output = model(x, self._scale_timesteps(t), **model_kwargs)
-        control_feat = model_kwargs.get("control_feat", None)
-        model_output = model(x, self._scale_timesteps(t), control_feat=control_feat)
+        model_output = model(x, self._scale_timesteps(t), **model_kwargs)
+        # control_feat = model_kwargs.get("control_feat", None)
+        # model_output = model(x, self._scale_timesteps(t), control_feat=control_feat)
         if isinstance(model_output, tuple):
             model_output, cal = model_output
         x=x[:,-1:,...]  #loss is only calculated on the last channel, not on the input brain MR image
