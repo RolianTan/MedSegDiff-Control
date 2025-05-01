@@ -1,4 +1,4 @@
-MedSegDiff-Control Setup
+# MedSegDiff-Control Setup
 
 ## Requirement
 
